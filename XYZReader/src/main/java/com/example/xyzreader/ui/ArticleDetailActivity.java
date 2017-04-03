@@ -21,14 +21,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
 import android.text.Html;
 import android.text.format.DateUtils;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.volley.VolleyError;
@@ -49,13 +46,13 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
     private Cursor mCursor;
     private long mStartId;
     private String mTitle = " ";
+    private boolean showTitle = false;
 
     private ViewPager mPager;
     private MyPagerAdapter mPagerAdapter;
 
     private CollapsingToolbarLayout mCollapsingToolbar;
-    private ImageView mPhotoView;
-    private LinearLayout mMetaBar;
+    private DynamicHeightNetworkImageView mPhotoView;
     private TextView mTitleView;
     private TextView mBylineView;
 
@@ -71,8 +68,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         }*/
         setContentView(R.layout.activity_article_detail);
         mCollapsingToolbar = (CollapsingToolbarLayout) findViewById(R.id.collapse_toolbar);
-        mPhotoView = (ImageView) findViewById(R.id.photo);
-        mMetaBar = (LinearLayout) findViewById(R.id.meta_bar);
+        mPhotoView = (DynamicHeightNetworkImageView) findViewById(R.id.photo);
         mTitleView = (TextView) findViewById(R.id.article_title);
         mBylineView = (TextView) findViewById(R.id.article_byline);
         mPager = (ViewPager) findViewById(R.id.pager);
@@ -88,25 +84,32 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         mPager.setPageMarginDrawable(new ColorDrawable(0x22000000));
 
         findViewById(R.id.action_up).setOnClickListener(this);
+        findViewById(R.id.share_fab).setOnClickListener(this);
         AppBarLayout appBarLayout = (AppBarLayout) findViewById(R.id.app_bar);
         appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
-            boolean isShow = false;
             int scrollRange = -1;
+            float scrollRangeF;
 
             @Override
             public void onOffsetChanged(AppBarLayout appBarLayout, int verticalOffset) {
                 if (scrollRange == -1) {
                     scrollRange = appBarLayout.getTotalScrollRange();
+                    scrollRangeF = scrollRange;
                 }
                 int scroll = scrollRange + verticalOffset;
-                Log.d("scroll", String.valueOf(scroll));
-                if (scroll < 0) {
+                if (scrollRange + verticalOffset < 70) {
+                    if(showTitle) return;
                     mCollapsingToolbar.setTitle(mTitle);
-                    isShow = true;
-                } else if(isShow) {
-                    mCollapsingToolbar.setTitle(" ");//carefull there should a space between double quote otherwise it wont work
-                    isShow = false;
+                    mTitleView.setVisibility(View.INVISIBLE);
+                    showTitle = true;
+                } else if(showTitle) {
+                    mTitleView.setVisibility(View.VISIBLE);
+                    mCollapsingToolbar.setTitle(" ");
+                    showTitle = false;
                 }
+                float alpha = scroll/scrollRangeF;
+                mTitleView.setAlpha(alpha);
+                mTitleView.setTextScaleX(alpha);
             }
         });
         mPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
@@ -131,7 +134,6 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         if (savedInstanceState == null) {
             if (getIntent() != null && getIntent().getData() != null) {
                 mStartId = ItemsContract.Items.getItemId(getIntent().getData());
-//                mSelectedItemId = mStartId;
             }
         }
     }
@@ -139,6 +141,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
     private void bindViews() {
         mTitle = mCursor.getString(ArticleLoader.Query.TITLE);
         mTitleView.setText(mTitle);
+        if(showTitle) mCollapsingToolbar.setTitle(mTitle);
         String publishDateString = mCursor.getString(ArticleLoader.Query.PUBLISHED_DATE);
         Date publishedDate = Utility.parseDate(publishDateString);
         if (!Utility.beforeEpochTime(publishedDate)) {
@@ -157,31 +160,32 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
                             + mCursor.getString(ArticleLoader.Query.AUTHOR)));
         }
         ImageLoaderHelper.getInstance(this).getImageLoader()
-                .get(mCursor.getString(ArticleLoader.Query.PHOTO_URL), new ImageLoader.ImageListener() {
+                .get(mCursor.getString(ArticleLoader.Query.THUMB_URL), new ImageLoader.ImageListener() {
                     @Override
                     public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
                         Bitmap bitmap = imageContainer.getBitmap();
                         if (bitmap != null) {
-                            Palette p = Palette.generate(bitmap, 12);
-                            int muteColor = p.getMutedColor(0xFF333333);
-                            int darkMuteColor = p.getDarkMutedColor(0xFF333333);
-                            mPhotoView.setImageBitmap(imageContainer.getBitmap());
-                            mMetaBar.setBackgroundColor(muteColor);
-                            mCollapsingToolbar.setContentScrimColor(muteColor);
-                            updateStatusBar(darkMuteColor);
+                            updateStatusBar(bitmap);
                         }
                     }
 
                     @Override
                     public void onErrorResponse(VolleyError volleyError) {}
                 });
+        mPhotoView.setImageUrl(
+                mCursor.getString(ArticleLoader.Query.PHOTO_URL),
+                ImageLoaderHelper.getInstance(this).getImageLoader());
     }
 
-    private void updateStatusBar(int color) {
+    private void updateStatusBar(Bitmap bmp) {
+        if(bmp == null) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Palette p = Palette.generate(bmp, 12);
+            int darkMuteColor = p.getDarkMutedColor(0xFF333333);
+
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(color);
+            window.setStatusBarColor(darkMuteColor);
         }
     }
 
