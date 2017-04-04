@@ -2,14 +2,18 @@ package com.example.xyzreader.ui;
 
 import android.app.Fragment;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.Html;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.transition.Slide;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AnimationUtils;
 import android.widget.TextView;
 
 import com.example.xyzreader.R;
@@ -21,7 +25,7 @@ import java.lang.ref.WeakReference;
  * either contained in a {@link ArticleListActivity} in two-pane mode (on
  * tablets) or a {@link ArticleDetailActivity} on handsets.
  */
-public class ArticleDetailFragment extends Fragment {
+public class ArticleDetailFragment extends Fragment implements ObservableScrollView.OnScrollChangedListener {
 //    private static final String TAG = "ArticleDetailFragment";
 
     public static final String ARG_ARTICLE_CONTENT = "article_content";
@@ -69,6 +73,22 @@ public class ArticleDetailFragment extends Fragment {
         bindViews();
     }
 
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        ((ObservableScrollView)mRootView).setCallbacks(this);
+    }
+
+    private void animate(View view) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Slide slide = new Slide(Gravity.BOTTOM);
+            slide.addTarget(view);
+            slide.setInterpolator(AnimationUtils.loadInterpolator(getActivity(), android.R.interpolator.linear_out_slow_in));
+            slide.setDuration(300);
+            getActivity().getWindow().setEnterTransition(slide);
+        }
+    }
+
     private void bindViews() {
         if (mRootView == null) {
             return;
@@ -86,6 +106,8 @@ public class ArticleDetailFragment extends Fragment {
 
 
             bodyView.setText(getString(R.string.content_loading));
+            animate(bodyView);
+
             textViewLazyLoad = new TextViewLazyLoad(bodyView);
 //            textViewLazyLoad.execute(mContent);
             // allow running in parallel
@@ -101,6 +123,16 @@ public class ArticleDetailFragment extends Fragment {
         if(textViewLazyLoad != null) {
             textViewLazyLoad.release();
             textViewLazyLoad = null;
+        }
+    }
+
+    @Override
+    public void onScrollChanged(int scrollY) {
+        ArticleDetailActivity activity = (ArticleDetailActivity) getActivity();
+        if(scrollY > 0) {
+            activity.mFAB.show();
+        } else {
+            activity.mFAB.hide();
         }
     }
 

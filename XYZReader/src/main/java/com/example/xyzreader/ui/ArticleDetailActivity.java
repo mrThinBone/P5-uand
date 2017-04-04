@@ -5,6 +5,7 @@ import android.app.FragmentManager;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -14,6 +15,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.view.ViewPager;
@@ -26,6 +28,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.android.volley.VolleyError;
@@ -53,8 +56,10 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
 
     private CollapsingToolbarLayout mCollapsingToolbar;
     private DynamicHeightNetworkImageView mPhotoView;
+    private LinearLayout mMetaBar;
     private TextView mTitleView;
     private TextView mBylineView;
+    FloatingActionButton mFAB;
 
     private Typeface mContentFont;
 
@@ -69,6 +74,8 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         setContentView(R.layout.activity_article_detail);
         mCollapsingToolbar = (CollapsingToolbarLayout) findViewById(R.id.collapse_toolbar);
         mPhotoView = (DynamicHeightNetworkImageView) findViewById(R.id.photo);
+        mFAB = (FloatingActionButton) findViewById(R.id.share_fab);
+        mMetaBar = (LinearLayout) findViewById(R.id.meta_bar);
         mTitleView = (TextView) findViewById(R.id.article_title);
         mBylineView = (TextView) findViewById(R.id.article_byline);
         mPager = (ViewPager) findViewById(R.id.pager);
@@ -85,9 +92,9 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         mPager.setOffscreenPageLimit(1);
 
         findViewById(R.id.action_up).setOnClickListener(this);
-        findViewById(R.id.share_fab).setOnClickListener(this);
-        AppBarLayout appBarLayout = (AppBarLayout) findViewById(R.id.app_bar);
-        appBarLayout.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+        mFAB.setOnClickListener(this);
+        AppBarLayout appBar = (AppBarLayout) findViewById(R.id.app_bar);
+        appBar.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
             int scrollRange = -1;
             float scrollRangeF;
 
@@ -113,22 +120,37 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
                 mTitleView.setTextScaleX(alpha);
             }
         });
-        mPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+        mPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
-            public void onPageScrollStateChanged(int state) {
-                super.onPageScrollStateChanged(state);
-                /*mUpButton.animate()
-                        .alpha((state == ViewPager.SCROLL_STATE_IDLE) ? 1f : 0f)
-                        .setDuration(300);*/
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
             }
 
             @Override
             public void onPageSelected(int position) {
                 if (mCursor != null) {
+                    mFAB.show();
+                    mMetaBar.setAlpha(0f);
+                    mMetaBar.setScaleY(0f);
+                    mMetaBar.animate()
+                            .scaleY(1f)
+                            .alpha(1f)
+                            .setDuration(300);
                     mCursor.moveToPosition(position);
                     bindViews();
                 }
-//                mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
+            }
+
+            @Override
+            public void onPageScrollStateChanged(int state) {
+                if(state == ViewPager.SCROLL_STATE_DRAGGING) {
+                    mMetaBar.setAlpha(0f);
+                    mMetaBar.setScaleY(0f);
+                    mFAB.hide();
+                } else {
+                    mFAB.show();
+                    mMetaBar.setAlpha(1f);
+                    mMetaBar.setScaleY(1f);
+                }
             }
         });
 
@@ -166,7 +188,11 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
                     public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
                         Bitmap bitmap = imageContainer.getBitmap();
                         if (bitmap != null) {
-                            updateStatusBar(bitmap);
+                            Palette p = Palette.generate(bitmap, 12);
+                            int muteColor = p.getMutedColor(0xFF333333);
+                            int darkMuteColor = p.getDarkMutedColor(0xFF333333);
+                            mFAB.setBackgroundTintList(ColorStateList.valueOf(muteColor));
+                            updateStatusBar(darkMuteColor);
                         }
                     }
 
@@ -178,15 +204,11 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
                 ImageLoaderHelper.getInstance(this).getImageLoader());
     }
 
-    private void updateStatusBar(Bitmap bmp) {
-        if(bmp == null) return;
+    private void updateStatusBar(int color) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Palette p = Palette.generate(bmp, 12);
-            int darkMuteColor = p.getDarkMutedColor(0xFF333333);
-
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.setStatusBarColor(darkMuteColor);
+            window.setStatusBarColor(color);
         }
     }
 
@@ -199,7 +221,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         int id = view.getId();
         switch (id) {
             case R.id.action_up:
-                finish();
+                onBackPressed();
                 break;
             case R.id.share_fab:
                 startActivity(Intent.createChooser(ShareCompat.IntentBuilder.from(this)

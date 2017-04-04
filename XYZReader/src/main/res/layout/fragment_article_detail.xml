@@ -1,7 +1,8 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.example.xyzreader.ui.ObservableScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:nestedScrollingEnabled="true">
+    android:nestedScrollingEnabled="true"
+    android:id="@+id/article_body_wrapper">
     <TextView android:id="@+id/article_body"
         style="?android:attr/textAppearanceMedium"
         android:layout_width="match_parent"
@@ -13,4 +14,4 @@
         android:textColorLink="@color/theme_accent"
         android:textSize="@dimen/detail_body_text_size"
         android:lineSpacingMultiplier="@fraction/detail_body_line_spacing_multiplier" />
-</ScrollView>
+</com.example.xyzreader.ui.ObservableScrollView>
