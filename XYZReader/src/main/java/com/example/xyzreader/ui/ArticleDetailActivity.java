@@ -14,7 +14,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
-import android.support.v13.app.FragmentStatePagerAdapter;
+import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -82,6 +82,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         mPager.setPageMargin((int) TypedValue
                 .applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()));
         mPager.setPageMarginDrawable(new ColorDrawable(0x22000000));
+        mPager.setOffscreenPageLimit(1);
 
         findViewById(R.id.action_up).setOnClickListener(this);
         findViewById(R.id.share_fab).setOnClickListener(this);
@@ -244,7 +245,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         mPagerAdapter.notifyDataSetChanged();
     }
 
-    private class MyPagerAdapter extends FragmentStatePagerAdapter {
+    private class MyPagerAdapter extends FragmentPagerAdapter {
         public MyPagerAdapter(FragmentManager fm) {
             super(fm);
         }

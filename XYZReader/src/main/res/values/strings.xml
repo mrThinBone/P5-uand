@@ -9,4 +9,5 @@
 
     <string name="up">Up</string>
 
+    <string name="content_loading">Please hold for seconds, content is loading....</string>
 </resources>
