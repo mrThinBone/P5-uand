@@ -30,7 +30,7 @@ public class ArticleDetailFragment extends Fragment implements ObservableScrollV
 
     public static final String ARG_ARTICLE_CONTENT = "article_content";
 
-    private View mRootView;
+    private ObservableScrollView mRootView;
     private String mContent;
     private TextViewLazyLoad textViewLazyLoad;
 
@@ -63,7 +63,7 @@ public class ArticleDetailFragment extends Fragment implements ObservableScrollV
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
+        mRootView = (ObservableScrollView) inflater.inflate(R.layout.fragment_article_detail, container, false);
         return mRootView;
     }
 
@@ -76,7 +76,7 @@ public class ArticleDetailFragment extends Fragment implements ObservableScrollV
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        ((ObservableScrollView)mRootView).setCallbacks(this);
+        mRootView.setCallbacks(this);
     }
 
     private void animate(View view) {

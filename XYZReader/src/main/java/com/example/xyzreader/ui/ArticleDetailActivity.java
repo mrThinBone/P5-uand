@@ -1,5 +1,8 @@
 package com.example.xyzreader.ui;
 
+import android.animation.Animator;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
@@ -13,8 +16,10 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v13.app.FragmentPagerAdapter;
 import android.support.v4.app.ShareCompat;
@@ -28,6 +33,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -52,6 +58,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
     private boolean showTitle = false;
 
     private ViewPager mPager;
+    private AppBarLayout mAppBar;
     private MyPagerAdapter mPagerAdapter;
 
     private CollapsingToolbarLayout mCollapsingToolbar;
@@ -62,6 +69,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
     FloatingActionButton mFAB;
 
     private Typeface mContentFont;
+    private boolean isTablet;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +89,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         mPager = (ViewPager) findViewById(R.id.pager);
         mCollapsingToolbar.setCollapsedTitleTextColor(Color.WHITE);
         mContentFont = Typeface.createFromAsset(getResources().getAssets(), "Rosario-Regular.ttf");
+        isTablet = mCollapsingToolbar.findViewById(R.id.toolbar) == null;
 
         getLoaderManager().initLoader(0, null, this);
 
@@ -93,8 +102,8 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
 
         findViewById(R.id.action_up).setOnClickListener(this);
         mFAB.setOnClickListener(this);
-        AppBarLayout appBar = (AppBarLayout) findViewById(R.id.app_bar);
-        appBar.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
+        mAppBar = (AppBarLayout) findViewById(R.id.app_bar);
+        mAppBar.addOnOffsetChangedListener(new AppBarLayout.OnOffsetChangedListener() {
             int scrollRange = -1;
             float scrollRangeF;
 
@@ -209,6 +218,34 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
             window.setStatusBarColor(color);
+        }
+    }
+
+    @Override
+    public void onEnterAnimationComplete() {
+        super.onEnterAnimationComplete();
+        if(isTablet) {
+            /*ArticleDetailFragment fragment = (ArticleDetailFragment) getFragmentManager()
+                    .findFragmentByTag("android:switcher:" + R.id.pager + ":" + mPager.getCurrentItem());
+            if(fragment != null)
+            fragment.scrollUp();*/
+            CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mAppBar.getLayoutParams();
+            final AppBarLayout.Behavior behavior = (AppBarLayout.Behavior) params.getBehavior();
+            if (behavior != null) {
+                ValueAnimator valueAnimator = ValueAnimator.ofInt();
+                valueAnimator.setInterpolator(new DecelerateInterpolator());
+                valueAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator animation) {
+                        behavior.setTopAndBottomOffset((Integer) animation.getAnimatedValue());
+                        mAppBar.requestLayout();
+                    }
+                });
+                valueAnimator.setIntValues(0, -200);
+                valueAnimator.setDuration(300);
+                valueAnimator.setStartDelay(1000);
+                valueAnimator.start();
+            }
         }
     }
 
