@@ -1,7 +1,5 @@
 package com.example.xyzreader.ui;
 
-import android.animation.Animator;
-import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Fragment;
 import android.app.FragmentManager;
@@ -16,7 +14,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CollapsingToolbarLayout;
 import android.support.design.widget.CoordinatorLayout;
@@ -52,8 +49,11 @@ import java.util.Date;
 public class ArticleDetailActivity extends AppCompatActivity implements View.OnClickListener,
         LoaderManager.LoaderCallbacks<Cursor> {
 
+    static final String EXTRA_CURSOR_POSITION = "cur_pos";
+
     private Cursor mCursor;
     private long mStartId;
+    private int mStartPos;
     private String mTitle = " ";
     private boolean showTitle = false;
 
@@ -164,8 +164,10 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         });
 
         if (savedInstanceState == null) {
-            if (getIntent() != null && getIntent().getData() != null) {
-                mStartId = ItemsContract.Items.getItemId(getIntent().getData());
+            Intent intent = getIntent();
+            if (intent != null) {
+                if(intent.getData() != null)mStartId = ItemsContract.Items.getItemId(intent.getData());
+                mStartPos = intent.getIntExtra(EXTRA_CURSOR_POSITION, -1);
             }
         }
     }
@@ -281,10 +283,13 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
         mCursor = cursor;
         mPagerAdapter.notifyDataSetChanged();
 
-        // Select the start ID
+        if(mStartPos >= 0 && mCursor.moveToPosition(mStartPos)) {
+            mPager.setCurrentItem(mStartPos, false);
+            bindViews();
+            return;
+        }
         if (mStartId > 0) {
             mCursor.moveToFirst();
-            // TODO: optimize
             while (!mCursor.isAfterLast()) {
                 if (mCursor.getLong(ArticleLoader.Query._ID) == mStartId) {
                     final int position = mCursor.getPosition();
@@ -305,7 +310,7 @@ public class ArticleDetailActivity extends AppCompatActivity implements View.OnC
     }
 
     private class MyPagerAdapter extends FragmentPagerAdapter {
-        public MyPagerAdapter(FragmentManager fm) {
+        MyPagerAdapter(FragmentManager fm) {
             super(fm);
         }
 
